@@ -22,12 +22,23 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.CharBuffer;
 
+/**
+ * A CharBarge is a container that carries chars between a producer and a consumer.
+ * It uses the old "double buffer" pattern.
+ */
 public class CharBarge implements Appendable {
+
+    /**
+     * Create a CharBarge of a given size
+     * @param size the size
+     * @return
+     */
     public static CharBarge create(int size) {
         Buffer frontBuffer = new Buffer(CharBuffer.wrap(new char[size]));
         Buffer backBuffer = new Buffer(CharBuffer.wrap(new char[size]));
         return new CharBarge(frontBuffer, backBuffer);
     }
+
     private Buffer frontBuffer;
     private Buffer backBuffer;
 
@@ -36,6 +47,11 @@ public class CharBarge implements Appendable {
         this.backBuffer = backBuffer;
     }
 
+    /**
+     * Flush the back buffer to the writer, and swap buffers.
+     * @param w
+     * @throws IOException
+     */
     public synchronized void flushTo(Writer w) throws IOException {
         while (!this.backBuffer.flushTo(w)) {
             try {
@@ -50,6 +66,12 @@ public class CharBarge implements Appendable {
         this.notifyAll();
     }
 
+    /**
+     * Append a CharSequence to the front buffer. If the front buffer is full, swap buffers and retry.
+     * @param cs
+     * @return
+     * @throws IOException
+     */
     public synchronized Appendable append(CharSequence cs) throws IOException {
         while (!this.frontBuffer.accept(cs)) {
             this.swapBuffers();
@@ -72,22 +94,42 @@ public class CharBarge implements Appendable {
         this.notifyAll();
     }
 
+    /**
+     * Append a char to the front buffer. If the front buffer is full, swap buffers and retry.
+     * @param c
+     * @return
+     * @throws IOException
+     */
     public Appendable append(char c) throws IOException {
         this.append(String.valueOf(c));
         return this;
     }
 
+    /**
+     * Append a CharSequence subsequence to the front buffer. If the front buffer is full, swap buffers and retry.
+     * @param cs
+     * @param start
+     * @param end
+     * @return
+     * @throws IOException
+     */
     public Appendable append(CharSequence cs, int start, int end) throws IOException {
         this.append(cs.subSequence(start, end));
         return this;
     }
 
+    /**
+     * Close the barge.
+     */
     public synchronized void close() {
         this.frontBuffer.closeAfterNextFlush();
         this.backBuffer.closeAfterNextFlush();
         this.notifyAll();
     }
 
+    /**
+     * @return true if one of the buffers is open
+     */
     public boolean isOpen() {
         return this.frontBuffer.isOpen() || this.backBuffer.isOpen();
     }

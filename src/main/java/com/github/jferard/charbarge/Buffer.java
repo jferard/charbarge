@@ -22,16 +22,31 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.CharBuffer;
 
+/**
+ * A Buffer is a wrap over a CharBuffer.
+ * The Buffer may be : 1. flushed into a writer ; 2. closed
+ */
 class Buffer {
     private CharBuffer buf;
     private boolean accept;
     private boolean closed;
 
+    /**
+     * Create a new Buffer
+     * @param buf the wrapped CharBuffer
+     */
     public Buffer(CharBuffer buf) {
         this.buf = buf;
         this.accept = false;
     }
 
+    /**
+     * Flush the wrapped buffer to a Writer. The data will be flushed iff there is no room left in the buffer.
+     * More formally, the last attempt to "accept" a CharSequence failed.
+     * @param w
+     * @return true if the buffer was flushed
+     * @throws IOException
+     */
     public synchronized boolean flushTo(Writer w) throws IOException {
         if(this.accept) {
             return false;
@@ -46,15 +61,25 @@ class Buffer {
         }
     }
 
+    /**
+     * @param cs
+     * @return true if there is enough room left for the CharSequence
+     * @throws IllegalArgumentException if the CharSequence is larger than the buffer
+     */
     public boolean accept(CharSequence cs) {
-        if(cs.length() > this.buf.array().length) {
+        int neededRoom = cs.length();
+        if(neededRoom > this.buf.array().length)
             throw new IllegalArgumentException();
-        } else {
-            this.accept = cs.length() <= this.buf.remaining();
-            return this.accept;
-        }
+
+        this.accept = neededRoom <= this.buf.remaining();
+        return this.accept;
     }
 
+    /**
+     * Append a CharSequence to the buffer. One must call "accept" before append.
+     * @param cs
+     * @throws IllegalStateException if accept was not called
+     */
     public void append(CharSequence cs) {
         if (!this.accept)
             throw new IllegalStateException("Use accept before append!");
@@ -62,15 +87,23 @@ class Buffer {
         this.buf.append(cs);
     }
 
+    /**
+     * Close the buffer after the next flush. That means: 1. the buffer won't accept more chars.
+     * 2. the buffer will be closed on next flush
+     */
     public void closeAfterNextFlush() {
         this.accept = false;
         this.closed = true;
     }
 
+    @Override
     public String toString() {
         return "Buffer[" + new String(this.buf.array()) + ", accept=" + this.accept + ", closed=" + this.closed + "]";
     }
 
+    /**
+     * @return true if the buffer was closed and flushed.
+     */
     public boolean isOpen() {
         return !this.closed || !this.accept;
     }
