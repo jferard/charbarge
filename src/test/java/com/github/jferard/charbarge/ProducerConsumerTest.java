@@ -39,7 +39,7 @@ public class ProducerConsumerTest {
 
         Producer p1 = new Producer(barge, provider);
         Writer w = new StringWriter();
-        Consumer c1 = new Consumer(barge, w);
+        WriterConsumer c1 = new WriterConsumer(barge, w);
         c1.start();
         p1.start();
         c1.join();

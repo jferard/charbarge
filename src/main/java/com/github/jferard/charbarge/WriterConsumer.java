@@ -21,11 +21,11 @@ package com.github.jferard.charbarge;
 import java.io.IOException;
 import java.io.Writer;
 
-class Consumer extends Thread {
+class WriterConsumer extends Thread {
     private CharBarge barge;
     private Writer w;
 
-    public Consumer(CharBarge barge, Writer w) {
+    public WriterConsumer(CharBarge barge, Writer w) {
         this.barge = barge;
         this.w = w;
     }
