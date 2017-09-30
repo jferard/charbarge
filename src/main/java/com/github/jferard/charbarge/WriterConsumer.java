@@ -21,7 +21,7 @@ package com.github.jferard.charbarge;
 import java.io.IOException;
 import java.io.Writer;
 
-class WriterConsumer extends Thread {
+public class WriterConsumer extends Thread {
     private CharBarge barge;
     private Writer w;
 
