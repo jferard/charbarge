@@ -45,11 +45,13 @@ class Producer extends Thread {
 
             this.barge.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // pass
+        } catch (RuntimeException e) {
+            // pass
         }
     }
 
-    public String get() {
+    public String written() {
         return this.s.toString();
     }
 }

@@ -41,19 +41,21 @@ public class CharBarge implements Appendable {
 
     private Buffer frontBuffer;
     private Buffer backBuffer;
+    private boolean emergencyClose;
 
     CharBarge(Buffer frontBuffer, Buffer backBuffer) {
         this.frontBuffer = frontBuffer;
         this.backBuffer = backBuffer;
+        this.emergencyClose = false;
     }
 
     /**
      * Flush the back buffer to the writer, and swap buffers.
-     * @param w
+     * @param appendable
      * @throws IOException
      */
-    public synchronized void flushTo(Writer w) throws IOException {
-        while (!this.backBuffer.flushTo(w)) {
+    public synchronized void flushTo(Appendable appendable) throws IOException {
+        while (!this.emergencyClose && !this.backBuffer.flushTo(appendable)) {
             try {
                 this.wait();
             } catch (InterruptedException e) {
@@ -67,22 +69,45 @@ public class CharBarge implements Appendable {
     }
 
     /**
+     * Flush the back buffer to the writer, and swap buffers.
+     * @param appendable
+     * @throws IOException
+     */
+    public synchronized void forceFlushTo(Appendable appendable) throws IOException {
+        if (this.emergencyClose) {
+            this.notifyAll();
+            return;
+        }
+
+        this.backBuffer.forceFlushTo(appendable);
+        this.frontBuffer.forceFlushTo(appendable);
+        this.notifyAll();
+    }
+
+
+    /**
      * Append a CharSequence to the front buffer. If the front buffer is full, swap buffers and retry.
      * @param cs
      * @return
      * @throws IOException
      */
     public synchronized Appendable append(CharSequence cs) throws IOException {
-        while (!this.frontBuffer.accept(cs)) {
-            this.swapBuffers();
-            try {
-                this.wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException(e);
+         try {
+            while (!this.frontBuffer.accept(cs)) {
+                this.swapBuffers();
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
+                }
             }
+            this.frontBuffer.append(cs);
+        } catch (IllegalArgumentException e) {
+            this.emergencyClose = true;
+            this.notifyAll(); // notify before exit !!!
+            throw e;
         }
-        this.frontBuffer.append(cs);
         this.notifyAll();
         return this;
     }
@@ -130,7 +155,7 @@ public class CharBarge implements Appendable {
     /**
      * @return true if one of the buffers is open
      */
-    public boolean isOpen() {
-        return this.frontBuffer.isOpen() || this.backBuffer.isOpen();
+    public synchronized boolean isOpen() {
+        return !this.emergencyClose && (this.frontBuffer.isOpen() || this.backBuffer.isOpen());
     }
 }

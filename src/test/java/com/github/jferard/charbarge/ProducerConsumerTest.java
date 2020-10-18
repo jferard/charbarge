@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class ProducerConsumerTest {
     @Test
-    public void test() throws FileNotFoundException, InterruptedException {
+    public void chuckTest() throws FileNotFoundException, InterruptedException {
         CharBarge barge = CharBarge.create(1024);
         final Faker f = new Faker();
         StringProvider provider = new StringProvider() {
@@ -39,10 +39,32 @@ public class ProducerConsumerTest {
 
         Producer p1 = new Producer(barge, provider);
         Writer w = new StringWriter();
-        WriterConsumer c1 = new WriterConsumer(barge, w);
+        AppendableConsumer c1 = new AppendableConsumer(barge, w);
         c1.start();
         p1.start();
         c1.join();
-        Assert.assertEquals(p1.get(), w.toString());
+        Assert.assertEquals(p1.written(), w.toString());
+    }
+
+    @Test
+    public void longTest() throws FileNotFoundException, InterruptedException {
+        CharBarge barge = CharBarge.create(10);
+        StringProvider provider = new StringProvider() {
+            @Override
+            public String next() {
+                return "a string longer than 10 chars";
+            }
+        };
+
+        Assert.assertEquals(29, provider.next().length());
+
+        Producer p1 = new Producer(barge, provider);
+        Writer w = new StringWriter();
+        AppendableConsumer c1 = new AppendableConsumer(barge, w);
+        c1.start();
+        p1.start();
+        c1.join();
+        Assert.assertEquals("", p1.written());
+        Assert.assertEquals("", w.toString());
     }
 }

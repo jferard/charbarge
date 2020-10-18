@@ -21,19 +21,19 @@ package com.github.jferard.charbarge;
 import java.io.IOException;
 import java.io.Writer;
 
-public class WriterConsumer extends Thread {
+public class AppendableConsumer extends Thread {
     private CharBarge barge;
-    private Writer w;
+    private Appendable appendable;
 
-    public WriterConsumer(CharBarge barge, Writer w) {
+    public AppendableConsumer(CharBarge barge, Appendable appendable) {
         this.barge = barge;
-        this.w = w;
+        this.appendable = appendable;
     }
 
     public void run() {
         try {
             while (this.barge.isOpen()) {
-               this.barge.flushTo(this.w);
+               this.barge.flushTo(this.appendable);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

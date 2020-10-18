@@ -19,7 +19,6 @@
 package com.github.jferard.charbarge;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.CharBuffer;
 
 /**
@@ -41,25 +40,35 @@ class Buffer {
     }
 
     /**
-     * Flush the wrapped buffer to a Writer. The data will be flushed iff there is no room left in the buffer.
+     * Flush the wrapped buffer to a Appendable. The data will be flushed iff there is no room left in the buffer.
      * More formally, the last attempt to "accept" a CharSequence failed.
-     * @param w
+     * @param appendable
      * @return true if the buffer was flushed
      * @throws IOException
      */
-    public synchronized boolean flushTo(Writer w) throws IOException {
+    public synchronized boolean flushTo(Appendable appendable) throws IOException {
         if(this.accept) {
             return false;
         } else {
-            this.buf.flip();
-            w.write(this.buf.toString());
-            this.buf.flip();
-            this.buf.clear();
-            this.accept = true;
-            this.notifyAll();
+            this.forceFlushTo(appendable);
             return true;
         }
     }
+
+    /**
+     * Flush the wrapped buffer to a Appendable.
+     * @param appendable
+     * @throws IOException
+     */
+    public synchronized void forceFlushTo(Appendable appendable) throws IOException {
+        this.buf.flip();
+        appendable.append(this.buf);
+        this.buf.flip();
+        this.buf.clear();
+        this.accept = true;
+        this.notifyAll();
+    }
+
 
     /**
      * @param cs
